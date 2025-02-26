@@ -62,9 +62,10 @@ const RiwayatDiagnosisAdmin = () => {
     const handleDelete = async (id) => {
         try {
             await axiosInstance.delete(`/diagnosis/${id}`);
+            setIsDeleteModalOpen(false);
             setSuccessMessage("Diagnosis berhasil dihapus!");
             setIsSuccessModalOpen(true);
-            fetchDiagnosis();
+            fetchDiagnosis(); // Refresh data
         }
         catch (error) {
             console.error("Error deleting diagnosis:", error);
