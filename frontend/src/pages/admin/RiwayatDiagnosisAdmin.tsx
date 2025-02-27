@@ -7,6 +7,16 @@ import {
   FiEdit,
   FiChevronDown,
   FiChevronUp,
+  FiUser,
+  FiMapPin,
+  FiPhone,
+  FiHeart,
+  FiCalendar,
+  FiTag,
+  FiFeather,
+  FiAlertCircle,
+  FiThermometer,
+  FiClock,
 } from "react-icons/fi";
 import ModalKonfirmasi from "../../components/ModalKonfirmasi";
 import SuccessModal from "../../components/SuccessModal";
@@ -172,39 +182,54 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
           <div className="animate-spin border-4 border-[#4F81C7] border-t-transparent rounded-full w-16 h-16"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {currentData.map((diagnosis, index) => (
             <div
               key={diagnosis.id_diagnosis}
-              className="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl border border-[#4F81C7] transition duration-300"
+              className="bg-[#F8FAFC] p-6 rounded-lg shadow-md hover:shadow-xl border-l-4 border-[#4F81C7] transition duration-300"
             >
-              <div className="space-y-2">
-                <p>
+              <div className="space-y-3">
+                <p className="flex items-center gap-2">
+                  <FiUser className="text-[#4F81C7]" />
                   <strong>Nama Pasien:</strong> {diagnosis.pasien.nama}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiMapPin className="text-[#4F81C7]" />
                   <strong>Alamat:</strong> {diagnosis.pasien.alamat}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiPhone className="text-[#4F81C7]" />
                   <strong>No. Telepon:</strong> {diagnosis.pasien.no_telp}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiHeart className="text-[#4F81C7]" />
                   <strong>Nama Kucing:</strong> {diagnosis.nama_kucing}
                 </p>
-                <p>
+
+                <div className="border-t border-gray-300 my-2"></div>
+
+                <p className="flex items-center gap-2">
+                  <FiCalendar className="text-[#4F81C7]" />
                   <strong>Usia:</strong> {diagnosis.usia}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiTag className="text-[#4F81C7]" />
                   <strong>Jenis Kelamin:</strong> {diagnosis.jenis_kelamin}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiFeather className="text-[#4F81C7]" />
                   <strong>Warna Bulu:</strong> {diagnosis.warna_bulu}
                 </p>
-                <p>
+
+                <div className="border-t border-gray-300 my-2"></div>
+
+                <p className="flex items-center gap-2">
+                  <FiAlertCircle className="text-[#4F81C7]" />
                   <strong>Penyakit:</strong>{" "}
                   {diagnosis.hasil_diagnosis.penyakit}
                 </p>
-                <p>
+                <p className="flex items-center gap-2">
+                  <FiThermometer className="text-[#4F81C7]" />
                   <strong>Gejala Terdeteksi:</strong>{" "}
                   {diagnosis.hasil_diagnosis.gejala_terdeteksi.join(", ")}
                 </p>
@@ -215,7 +240,7 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                     <div className="mt-4">
                       <button
                         onClick={() => toggleDropdown(index)}
-                        className="w-full flex justify-between items-center text-[#4F81C7] font-semibold bg-gray-100 py-2 px-4 rounded-lg hover:bg-gray-200 transition"
+                        className="w-full flex justify-between items-center text-[#4F81C7] font-semibold bg-gray-200 py-2 px-4 rounded-lg hover:bg-gray-300 transition"
                       >
                         Kemungkinan Penyakit Lain
                         {expandedIndex === index ? (
@@ -231,7 +256,7 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                             (penyakit: any, idx: number) => (
                               <div
                                 key={idx}
-                                className="bg-gray-100 p-3 rounded-lg border border-[#4F81C7]"
+                                className="bg-white p-3 rounded-lg border border-[#4F81C7] shadow-md"
                               >
                                 <p>
                                   <strong>Penyakit:</strong> {penyakit.penyakit}
@@ -251,13 +276,14 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                     </div>
                   )}
 
-                <p>
-                  <strong>Tanggal:</strong>{" "}
+                <p className="flex items-center gap-2 text-sm text-gray-500">
+                  <FiClock className="text-[#4F81C7]" />
                   {new Date(diagnosis.tanggal_diagnosis).toLocaleString(
                     "id-ID"
                   )}
                 </p>
               </div>
+
               <div className="flex justify-center md:justify-end mt-4 gap-2">
                 <button
                   onClick={() => handlePrint(diagnosis)}
@@ -276,7 +302,7 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                     setDiagnosisToDelete(diagnosis);
                     setIsDeleteModalOpen(true);
                   }}
-                  className="bg-red-700 text-white px-3 py-2 rounded-lg hover:bg-red-800 flex items-center gap-1"
+                  className="bg-red-800 text-white px-3 py-2 rounded-lg hover:bg-red-900 flex items-center gap-1"
                 >
                   <FiTrash /> Hapus
                 </button>
