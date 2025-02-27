@@ -192,6 +192,15 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                   <strong>Nama Kucing:</strong> {diagnosis.nama_kucing}
                 </p>
                 <p>
+                  <strong>Usia:</strong> {diagnosis.usia}
+                </p>
+                <p>
+                  <strong>Jenis Kelamin:</strong> {diagnosis.jenis_kelamin}
+                </p>
+                <p>
+                  <strong>Warna Bulu:</strong> {diagnosis.warna_bulu}
+                </p>
+                <p>
                   <strong>Penyakit:</strong>{" "}
                   {diagnosis.hasil_diagnosis.penyakit}
                 </p>
