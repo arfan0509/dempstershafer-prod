@@ -233,7 +233,10 @@ const RiwayatDiagnosisPage: React.FC = () => {
                                   </h5>
                                   <p className="text-gray-600 mt-2">
                                     <strong>Gejala Terdeteksi:</strong>{" "}
-                                    {penyakit.gejala_terdeteksi.join(", ")}
+                                    {penyakit.gejalaCocok &&
+                                    Array.isArray(penyakit.gejalaCocok)
+                                      ? penyakit.gejalaCocok.join(", ")
+                                      : "Tidak tersedia"}
                                   </p>
                                   <p className="text-gray-600">
                                     <strong>Solusi:</strong> {penyakit.solusi}

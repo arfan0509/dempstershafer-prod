@@ -263,7 +263,10 @@ const RiwayatDiagnosisAdmin: React.FC = () => {
                                 </p>
                                 <p>
                                   <strong>Gejala Terdeteksi:</strong>{" "}
-                                  {penyakit.gejala_terdeteksi.join(", ")}
+                                  {penyakit.gejalaCocok &&
+                                  Array.isArray(penyakit.gejalaCocok)
+                                    ? penyakit.gejalaCocok.join(", ")
+                                    : "Tidak tersedia"}
                                 </p>
                                 <p>
                                   <strong>Solusi:</strong> {penyakit.solusi}
