@@ -69,7 +69,9 @@ const Dashboard: React.FC = () => {
       const trendsMap: any = {};
 
       diagnosisRes.data.forEach((d: any) => {
-        const dateKey = new Date(d.tanggal_diagnosis).toLocaleDateString("id-ID");
+        const dateKey = new Date(d.tanggal_diagnosis).toLocaleDateString(
+          "id-ID"
+        );
         trendsMap[dateKey] = (trendsMap[dateKey] || 0) + 1;
 
         penyakitFrequency[d.hasil_diagnosis.penyakit] =
@@ -80,9 +82,47 @@ const Dashboard: React.FC = () => {
         });
       });
 
-      setDiagnosisTrends(
-        Object.entries(trendsMap).map(([date, count]) => ({ date, count }))
-      );
+      const sortedTrends = Object.entries(trendsMap)
+        .map(([date, count]) => {
+          // 🔹 Konversi "27/2/2025" → "2025-02-27" (untuk sorting)
+          const parts = date.split("/"); // Pisahkan dengan "/"
+          if (parts.length !== 3) {
+            console.error("Format tanggal tidak valid:", date);
+            return null;
+          }
+
+          // 🔹 Simpan dalam format yang ingin ditampilkan
+          const formattedDate = `${parts[0].padStart(
+            2,
+            "0"
+          )}-${parts[1].padStart(2, "0")}-${parts[2]}`;
+
+          // 🔹 Konversi ke format YYYY-MM-DD agar bisa diurutkan dengan `new Date()`
+          const isoDate = `${parts[2]}-${parts[1].padStart(
+            2,
+            "0"
+          )}-${parts[0].padStart(2, "0")}`;
+
+          const parsedDate = new Date(isoDate);
+
+          if (isNaN(parsedDate.getTime())) {
+            console.error("Invalid date after conversion:", isoDate);
+            return null; // Abaikan jika tetap tidak valid
+          }
+
+          return {
+            date: formattedDate, // ⬅️ Tetap gunakan DD-MM-YYYY untuk ditampilkan
+            isoDate, // ⬅️ Gunakan ini untuk sorting
+            count,
+          };
+        })
+        .filter(Boolean) // Hapus data yang null
+        .sort(
+          (a, b) =>
+            new Date(a.isoDate).getTime() - new Date(b.isoDate).getTime()
+        ); // 🔥 Urutkan dari lama ke baru
+
+      setDiagnosisTrends(sortedTrends);
 
       setTopPenyakit(
         Object.entries(penyakitFrequency)
@@ -94,7 +134,12 @@ const Dashboard: React.FC = () => {
       setTopGejala(
         Object.entries(gejalaFrequency)
           .map(([name, value]) => ({ name, value }))
-          .sort((a: { name: string; value: number }, b: { name: string; value: number }) => b.value - a.value)
+          .sort(
+            (
+              a: { name: string; value: number },
+              b: { name: string; value: number }
+            ) => b.value - a.value
+          )
           .slice(0, 5)
       );
     } catch (error) {
@@ -108,13 +153,27 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="p-2 min-h-screen">
-      <h1 className="text-3xl font-bold text-[#4F81C7] mb-6">Dashboard Admin</h1>
+      <h1 className="text-3xl font-bold text-[#4F81C7] mb-6">
+        Dashboard Admin
+      </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
-          { label: "Penyakit", count: penyakitCount, icon: <FaVirus size={30} /> },
-          { label: "Gejala", count: gejalaCount, icon: <FaHeartbeat size={30} /> },
+          {
+            label: "Penyakit",
+            count: penyakitCount,
+            icon: <FaVirus size={30} />,
+          },
+          {
+            label: "Gejala",
+            count: gejalaCount,
+            icon: <FaHeartbeat size={30} />,
+          },
           { label: "User", count: pasienCount, icon: <FaUser size={30} /> },
-          { label: "Diagnosis", count: diagnosisCount, icon: <FaStethoscope size={30} /> },
+          {
+            label: "Diagnosis",
+            count: diagnosisCount,
+            icon: <FaStethoscope size={30} />,
+          },
         ].map(({ label, count, icon }) => (
           <div
             key={label}
@@ -159,21 +218,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
-        <div className="bg-white rounded-lg shadow-lg p-4">
-          <h3 className="text-xl font-semibold text-[#4F81C7] mb-4">
-            Grafik Tren Diagnosis
-          </h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={diagnosisTrends}>
-              <XAxis dataKey="date" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#4F81C7" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
+        {/* Penyakit Paling Umum */}
         <div className="bg-white rounded-lg shadow-lg p-4">
           <h3 className="text-xl font-semibold text-[#4F81C7] mb-4">
             Penyakit Paling Umum
@@ -191,7 +237,10 @@ const Dashboard: React.FC = () => {
                 label
               >
                 {topPenyakit.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip />
@@ -199,18 +248,35 @@ const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
+        {/* Gejala Paling Sering Muncul */}
         <div className="bg-white rounded-lg shadow-lg p-4">
           <h3 className="text-xl font-semibold text-[#4F81C7] mb-4">
             Gejala Paling Sering Muncul
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={topGejala}>
-              <XAxis dataKey="name" />
+              <XAxis dataKey="name" hide={true} />{" "}
+              {/* Hilangkan nama di bawah chart */}
               <YAxis allowDecimals={false} />
               <Tooltip />
               <Legend />
               <Bar dataKey="value" fill="#4F81C7" />
             </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* 🔹 Grafik Tren Diagnosis 7 Hari Terakhir (Full Width) */}
+        <div className="bg-white rounded-lg shadow-lg p-4 lg:col-span-2">
+          <h3 className="text-xl font-semibold text-[#4F81C7] mb-4">
+            Grafik Tren Diagnosis (7 Hari Terakhir)
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={diagnosisTrends}>
+              <XAxis dataKey="date" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" stroke="#4F81C7" />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>

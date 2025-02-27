@@ -31,31 +31,38 @@ const LoginPasienPage: React.FC = () => {
 
   const handleLogin = async () => {
     if (!validateInputs()) return;
-  
+
     try {
       const response = await axiosInstance.post("/pasien/login", {
         email,
         password,
       });
       const { accessToken, refreshToken, id_pasien } = response.data;
-  
-      // Pastikan kedua token disimpan
+
+      // Simpan token
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("id_pasien", id_pasien);
-  
-      login(accessToken, refreshToken); // Login dengan token
+
+      login(accessToken, refreshToken);
     } catch (error: any) {
-      if (error.response?.data?.message.includes("Email")) {
-        setEmailError(error.response.data.message);
-      } else if (error.response?.data?.message.includes("Password")) {
-        setPasswordError(error.response.data.message);
+      const errorMessage = error.response?.data?.message || "Terjadi kesalahan";
+
+      if (errorMessage.includes("Email")) {
+        setEmailError(errorMessage);
+      } else if (errorMessage.includes("Password")) {
+        setPasswordError(errorMessage);
       } else {
         console.error("Login error:", error);
       }
     }
   };
-  
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
 
   return (
     <div
@@ -82,6 +89,7 @@ const LoginPasienPage: React.FC = () => {
             } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F81C7] bg-white/90 text-gray-900`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKeyPress}
           />
           {emailError && (
             <p className="text-red-500 text-sm mt-1">{emailError}</p>
@@ -89,7 +97,7 @@ const LoginPasienPage: React.FC = () => {
         </div>
 
         {/* 🔒 Input Password */}
-        <div className="mb-4 relative">
+        <div className="mb-4">
           <label className="block text-gray-700 font-medium mb-1">
             Password <span className="text-red-500">*</span>
           </label>
@@ -102,6 +110,7 @@ const LoginPasienPage: React.FC = () => {
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F81C7] pr-12 bg-white/90 text-gray-900`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={handleKeyPress}
             />
             <div
               className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-gray-600 hover:text-gray-900"

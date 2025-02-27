@@ -11,7 +11,7 @@ const LandingPage = () => {
     };
     // Fungsi untuk mengarahkan ke halaman register
     const handleRegister = () => {
-        navigate("/register"); // Ganti dengan route halaman register yang sesuai
+        navigate("/pasien-register"); // Ganti dengan route halaman register yang sesuai
     };
     // Fungsi untuk menutup modal
     const handleCloseModal = () => {
