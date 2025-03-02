@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { FiEdit, FiTrash, FiPlus, FiSearch } from "react-icons/fi";

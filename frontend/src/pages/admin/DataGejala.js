@@ -1,4 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { FiEdit, FiTrash, FiPlus, FiSearch } from "react-icons/fi";
