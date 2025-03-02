@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
-import { FiTrash, FiPlus, FiSearch } from "react-icons/fi";
+import { FiTrash, FiPlus, FiEdit, FiSearch } from "react-icons/fi";
 import ModalTambahRelasi from "../../components/admin/ModalTambahRelasi";
+import ModalEditRelasi from "../../components/admin/ModalEditRelasi";
 import ModalKonfirmasi from "../../components/ModalKonfirmasi";
 
 const DataRelasiGejala = () => {
   const [isModalTambahOpen, setIsModalTambahOpen] = useState(false);
-
+  const [isModalEditOpen, setIsModalEditOpen] = useState(false);
   const [relasiData, setRelasiData] = useState([]);
   const [penyakitData, setPenyakitData] = useState([]);
   const [gejalaData, setGejalaData] = useState([]);
@@ -15,12 +16,12 @@ const DataRelasiGejala = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [relasiToDelete, setRelasiToDelete] = useState(null);
 
-  // ✅ Search & Filter states
+  // Search & Filter states
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [kodePenyakitFilter, setKodePenyakitFilter] = useState("");
 
-  // ✅ Pagination states
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [dataPerPage, setDataPerPage] = useState(5);
 
@@ -38,7 +39,7 @@ const DataRelasiGejala = () => {
     };
   };
 
-  // ✅ Ambil Data Relasi, Penyakit, dan Gejala
+  // Ambil Data Relasi, Penyakit, dan Gejala
   const fetchData = async () => {
     try {
       const [relasiRes, penyakitRes, gejalaRes] = await Promise.all([
@@ -59,7 +60,7 @@ const DataRelasiGejala = () => {
     fetchData();
   }, []);
 
-  // ✅ Search & Filter Handler
+  // Search & Filter Handler
   useEffect(() => {
     let filtered = [...relasiData];
 
@@ -89,7 +90,7 @@ const DataRelasiGejala = () => {
 
   const handleSearch = () => setSearchQuery(searchInput);
 
-  // ✅ Pagination Logic
+  // Pagination Logic
   const indexOfLastData = currentPage * dataPerPage;
   const indexOfFirstData = indexOfLastData - dataPerPage;
   const currentData = filteredData.slice(indexOfFirstData, indexOfLastData);
@@ -97,7 +98,7 @@ const DataRelasiGejala = () => {
 
   const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
 
-  // ✅ CRUD Handlers
+  // CRUD Handlers
   const handleAddData = async (newData) => {
     try {
       const headers = getAuthHeaders();
@@ -108,6 +109,25 @@ const DataRelasiGejala = () => {
     } catch (error) {
       console.error(
         "Error adding relasi:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  const handleEditData = async (updatedData) => {
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+      await axiosInstance.put(
+        `/relasi/update/${updatedData.id_relasi}`,
+        updatedData,
+        headers
+      );
+      fetchData();
+      setIsModalEditOpen(false);
+    } catch (error) {
+      console.error(
+        "Error editing relasi:",
         error.response?.data || error.message
       );
     }
@@ -128,7 +148,7 @@ const DataRelasiGejala = () => {
     }
   };
 
-  // ✅ Helper Functions
+  // Helper Functions
   const getPenyakitName = (id_penyakit) => {
     const penyakit = penyakitData.find((p) => p.id_penyakit === id_penyakit);
     return penyakit
@@ -227,6 +247,15 @@ const DataRelasiGejala = () => {
                 <td className="px-4 py-4 border flex flex-col items-center gap-2">
                   <button
                     onClick={() => {
+                      setSelectedRelasi(relasi);
+                      setIsModalEditOpen(true);
+                    }}
+                    className="border border-blue-500 text-blue-500 px-3 py-2 rounded-md w-24 h-7 flex items-center justify-center gap-1 hover:bg-blue-500 hover:text-white transition"
+                  >
+                    <FiEdit /> Edit
+                  </button>
+                  <button
+                    onClick={() => {
                       setRelasiToDelete(relasi);
                       setIsDeleteModalOpen(true);
                     }}
@@ -276,6 +305,16 @@ const DataRelasiGejala = () => {
         onClose={() => setIsModalTambahOpen(false)}
         onSave={handleAddData}
       />
+
+      {/* 📝 Modal Edit Data */}
+      {selectedRelasi && (
+        <ModalEditRelasi
+          isOpen={isModalEditOpen}
+          onClose={() => setIsModalEditOpen(false)}
+          onSave={handleEditData}
+          data={selectedRelasi}
+        />
+      )}
 
       {/* 🗑️ Modal Konfirmasi Hapus */}
       {relasiToDelete && (

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "../../api/axiosInstance";
+import axios from "axios";
 
-const ModalTambahRelasi = ({ isOpen, onClose, onSave }) => {
+const ModalEditRelasi = ({ isOpen, onClose, onSave, data }) => {
   const [formData, setFormData] = useState({
+    id_relasi: "",
     id_penyakit: "",
     id_gejala: "",
     bobot: "",
@@ -11,12 +12,23 @@ const ModalTambahRelasi = ({ isOpen, onClose, onSave }) => {
   const [gejalaData, setGejalaData] = useState([]);
 
   useEffect(() => {
-    if (isOpen) {
-      // Fetch data penyakit dan gejala ketika modal dibuka
+    if (isOpen && data) {
+      setFormData({
+        id_relasi: data.id_relasi,
+        id_penyakit: data.id_penyakit,
+        id_gejala: data.id_gejala,
+        bobot: data.bobot,
+      });
+
+      // Ambil data penyakit dan gejala
       const fetchData = async () => {
         try {
-          const penyakitResponse = await axiosInstance.get("/penyakit");
-          const gejalaResponse = await axiosInstance.get("/gejala");
+          const penyakitResponse = await axios.get(
+            "http://localhost:5000/api/penyakit"
+          );
+          const gejalaResponse = await axios.get(
+            "http://localhost:5000/api/gejala"
+          );
           setPenyakitData(penyakitResponse.data);
           setGejalaData(gejalaResponse.data);
         } catch (error) {
@@ -25,35 +37,35 @@ const ModalTambahRelasi = ({ isOpen, onClose, onSave }) => {
       };
       fetchData();
     }
-  }, [isOpen]);
-
-  // Update bobot berdasarkan gejala yang dipilih
-  useEffect(() => {
-    if (formData.id_gejala) {
-      const selectedGejala = gejalaData.find(
-        (gejala) => gejala.id_gejala === parseInt(formData.id_gejala, 10)
-      );
-      if (selectedGejala) {
-        setFormData((prevState) => ({
-          ...prevState,
-          bobot: selectedGejala.bobot, // Set bobot berdasarkan gejala yang dipilih
-        }));
-      }
-    }
-  }, [formData.id_gejala, gejalaData]);
+  }, [isOpen, data]);
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
     onSave(formData);
-    setFormData({ id_penyakit: "", id_gejala: "", bobot: "" }); // Reset form after submit
+    setFormData({ id_relasi: "", id_penyakit: "", id_gejala: "", bobot: "" });
+  };
+
+  const handleBobotChange = (e) => {
+    let value = e.target.value;
+
+    // Pastikan nilai bobot tidak lebih dari 1 atau kurang dari 0
+    if (parseFloat(value) > 1) {
+      value = "1"; // Batas maksimal 1
+    } else if (parseFloat(value) < 0) {
+      value = "0"; // Batas minimal 0
+    }
+
+    if (value.length <= 4 && parseFloat(value) >= 0 && parseFloat(value) <= 1) {
+      setFormData({ ...formData, bobot: value });
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
       <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
         <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-          Tambah Relasi Gejala
+          Edit Relasi Gejala
         </h2>
 
         {/* Dropdown Penyakit */}
@@ -96,13 +108,18 @@ const ModalTambahRelasi = ({ isOpen, onClose, onSave }) => {
           </select>
         </div>
 
-        {/* Menampilkan bobot */}
-        <div className="mb-3">
+        {/* Bobot */}
+        <div className="mb-4">
           <label className="block text-gray-700 font-medium mb-1">Bobot</label>
           <input
-            type="text"
-            value={formData.bobot || ""} // Jika bobot kosong, tetap kosong
             className="w-full p-2 border rounded-md bg-gray-100 focus:outline-none"
+            type="number"
+            placeholder="Masukkan bobot (0-1)"
+            value={formData.bobot}
+            onChange={handleBobotChange}
+            min="0"
+            max="1"
+            step="0.01"
           />
         </div>
 
@@ -126,4 +143,4 @@ const ModalTambahRelasi = ({ isOpen, onClose, onSave }) => {
   );
 };
 
-export default ModalTambahRelasi;
+export default ModalEditRelasi;
