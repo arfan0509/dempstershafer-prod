@@ -1,4 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import { FiSearch, FiTrash, FiPrinter, FiEdit, FiChevronDown, FiChevronUp, FiUser, FiMapPin, FiPhone, FiHeart, FiCalendar, FiTag, FiFeather, FiAlertCircle, FiThermometer, FiClock, } from "react-icons/fi";

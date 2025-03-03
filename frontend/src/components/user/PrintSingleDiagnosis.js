@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const PrintSingleDiagnosis = (diagnosisData) => {
     const printWindow = window.open("", "_blank");
     if (printWindow) {
