@@ -8,14 +8,81 @@ import LoadingModal from "../../components/user/LoadingModal";
 
 // Fungsi pembulatan ke 4 desimal
 const round4 = (num: number) => Math.round(num * 10000) / 10000;
-// Fungsi untuk format angka tanpa trailing zero
+// Fungsi format untuk menghilangkan trailing nol (misal: 0.2000 → "0.2")
 const formatNumber = (num: number) => parseFloat(num.toFixed(4)).toString();
+
+/**
+ * combineMassFunctions: Menggabungkan dua fungsi massa (m1 dan m2)
+ * menggunakan aturan kombinasi Dempster-Shafer.
+ * - m1: Fungsi massa sebelumnya.
+ * - m2: Fungsi massa gejala saat ini.
+ * - frame: Daftar penyakit (himpunan Θ) yang relevan.
+ * - stepsDetail: Array string untuk mencatat tiap langkah perhitungan.
+ */
+const combineMassFunctions = (
+  m1: { [key: string]: number },
+  m2: { [key: string]: number },
+  frame: string[],
+  stepsDetail: string[]
+): { [key: string]: number } => {
+  const fullFrameKey = frame.slice().sort().join(",");
+  let m_comb: { [key: string]: number } = {};
+  let K = 0; // total konflik
+
+  stepsDetail.push(`Mulai kombinasi massa:`);
+  for (let key1 in m1) {
+    for (let key2 in m2) {
+      // Jika key sama dengan fullFrameKey, artinya mewakili Θ
+      const set1 =
+        key1 === fullFrameKey ? new Set(frame) : new Set(key1.split(","));
+      const set2 =
+        key2 === fullFrameKey ? new Set(frame) : new Set(key2.split(","));
+      // Hitung irisan dari dua himpunan
+      const intersection = new Set([...set1].filter((x) => set2.has(x)));
+      // Hitung hasil perkalian dan bulatkan
+      const product = round4(m1[key1] * m2[key2]);
+      // Catat langkah perhitungan
+      stepsDetail.push(
+        `  ${key1} (${formatNumber(m1[key1])}) x ${key2} (${formatNumber(
+          m2[key2]
+        )}) = ${formatNumber(product)} → ` +
+          (intersection.size === 0
+            ? "konflik"
+            : `hasil ${[...intersection].sort().join(",")}`)
+      );
+      // Jika tidak ada irisan, tambahkan ke konflik (K)
+      if (intersection.size === 0) {
+        K = round4(K + product);
+      } else {
+        const intersectionKey = [...intersection].sort().join(",");
+        m_comb[intersectionKey] = round4(
+          (m_comb[intersectionKey] || 0) + product
+        );
+      }
+    }
+  }
+  stepsDetail.push(`Total konflik (K): ${formatNumber(K)}`);
+  // Normalisasi: nilai setiap massa dibagi dengan (1 - K)
+  const normalization = round4(1 - K);
+  stepsDetail.push(`Normalisasi = 1 - K = ${formatNumber(normalization)}`);
+  if (normalization === 0) return {};
+  for (let key in m_comb) {
+    const before = m_comb[key];
+    m_comb[key] = round4(m_comb[key] / normalization);
+    stepsDetail.push(
+      `  Normalisasi m(${key}): ${formatNumber(before)} / ${formatNumber(
+        normalization
+      )} = ${formatNumber(m_comb[key])}`
+    );
+  }
+  stepsDetail.push(`Hasil kombinasi: ${JSON.stringify(m_comb)}`);
+  return m_comb;
+};
 
 const SistemPakarPage: React.FC = () => {
   const [gejalaList, setGejalaList] = useState<any[]>([]);
   const [penyakitList, setPenyakitList] = useState<any[]>([]);
   const [selectedGejala, setSelectedGejala] = useState<string[]>([]);
-  // Hasil diagnosa: { penyakit, belief, gejalaCocok, deskripsi, solusi }
   const [hasilDiagnosa, setHasilDiagnosa] = useState<any[]>([]);
   const [showOtherPenyakit, setShowOtherPenyakit] = useState<boolean>(false);
   const [kucingData, setKucingData] = useState({
@@ -39,13 +106,13 @@ const SistemPakarPage: React.FC = () => {
         const penyakitMap: any = {};
 
         data.forEach((item: any) => {
-          // Ambil data gejala dengan bobot dari relasi (item.bobot)
+          // Simpan data gejala (gunakan item.bobot untuk relasi)
           gejalaMap[item.gejala.kode_gejala] = {
             nama: item.gejala.nama_gejala,
             bobot: parseFloat(item.bobot),
             kode: item.gejala.kode_gejala,
           };
-          // Simpan data penyakit beserta relasinya sebagai objek { kode_gejala, bobot }
+          // Simpan data penyakit beserta relasinya
           if (!penyakitMap[item.penyakit.kode_penyakit]) {
             penyakitMap[item.penyakit.kode_penyakit] = {
               nama: item.penyakit.nama_penyakit,
@@ -54,7 +121,6 @@ const SistemPakarPage: React.FC = () => {
               gejala: [],
             };
           }
-          // Gunakan bobot dari item.bobot, bukan dari item.gejala.bobot
           penyakitMap[item.penyakit.kode_penyakit].gejala.push({
             kode_gejala: item.gejala.kode_gejala,
             bobot: parseFloat(item.bobot),
@@ -70,43 +136,7 @@ const SistemPakarPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Fungsi kombinasi dua fungsi massa dengan aturan Dempster-Shafer (dengan pembulatan)
-  const combineMassFunctions = (
-    m1: { [key: string]: number },
-    m2: { [key: string]: number },
-    frame: string[]
-  ): { [key: string]: number } => {
-    const fullFrameKey = frame.sort().join(",");
-    let m_comb: { [key: string]: number } = {};
-    let K = 0; // total konflik
-
-    for (let key1 in m1) {
-      for (let key2 in m2) {
-        const set1 =
-          key1 === fullFrameKey ? new Set(frame) : new Set(key1.split(","));
-        const set2 =
-          key2 === fullFrameKey ? new Set(frame) : new Set(key2.split(","));
-        const intersection = new Set([...set1].filter((x) => set2.has(x)));
-        const product = round4(m1[key1] * m2[key2]);
-        if (intersection.size === 0) {
-          K = round4(K + product);
-        } else {
-          const intersectionKey = [...intersection].sort().join(",");
-          m_comb[intersectionKey] = round4(
-            (m_comb[intersectionKey] || 0) + product
-          );
-        }
-      }
-    }
-    const normalization = round4(1 - K);
-    if (normalization === 0) return {};
-    for (let key in m_comb) {
-      m_comb[key] = round4(m_comb[key] / normalization);
-    }
-    return m_comb;
-  };
-
-  // Fungsi untuk mendapatkan daftar nama gejala yang mendukung suatu penyakit
+  // Fungsi untuk mendapatkan nama-nama gejala yang mendukung suatu penyakit
   const getMatchingSymptoms = (disease: string): string[] => {
     return selectedGejala
       .map((kode) => {
@@ -121,7 +151,7 @@ const SistemPakarPage: React.FC = () => {
       .filter((item) => item !== null) as string[];
   };
 
-  // Fungsi utama perhitungan DS tanpa distribusi tambahan untuk himpunan komposit
+  // Fungsi utama perhitungan Dempster-Shafer (DS) dengan pendekatan "ambil bobot tertinggi"
   const handleDiagnosa = async () => {
     if (selectedGejala.length === 0) {
       alert("Silakan pilih setidaknya satu gejala!");
@@ -130,7 +160,13 @@ const SistemPakarPage: React.FC = () => {
 
     let steps = "";
 
-    // Batasi frame hanya pada penyakit relevan dari gejala yang dipilih
+    // Urutkan gejala yang dipilih agar konsisten (misalnya: G2, G3, G4)
+    const sortedSelectedGejala = [...selectedGejala].sort();
+    steps += `Gejala yang dipilih (urut): ${sortedSelectedGejala.join(
+      ", "
+    )}\n\n`;
+
+    // Buat mapping: tiap gejala → daftar relasi (penyakit dan bobotnya)
     const gejalaToPenyakitMap: {
       [key: string]: { penyakit: string; bobot: number }[];
     } = {};
@@ -143,56 +179,64 @@ const SistemPakarPage: React.FC = () => {
         gejalaToPenyakitMap[kode_gejala].push({ penyakit: p.nama, bobot });
       });
     });
+    // Tentukan frame (himpunan penyakit relevan)
     const relevantDiseases = new Set<string>();
-    selectedGejala.forEach((gejalaCode) => {
+    sortedSelectedGejala.forEach((gejalaCode) => {
       const rel = gejalaToPenyakitMap[gejalaCode] || [];
       rel.forEach(({ penyakit }) => relevantDiseases.add(penyakit));
     });
     const frame = Array.from(relevantDiseases).sort();
     const fullFrameKey = frame.join(",");
     steps += `Frame (Θ): [${frame.join(", ")}]\n\n`;
+    // Inisialisasi massa awal: m(Θ)=1
     let m_comb: { [key: string]: number } = { [fullFrameKey]: 1 };
-    steps += `Inisialisasi m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
+    steps += `Inisialisasi: m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
 
-    // Proses perhitungan massa untuk setiap gejala yang dipilih
-    selectedGejala.forEach((gejalaCode) => {
+    // Proses perhitungan untuk setiap gejala terpilih
+    sortedSelectedGejala.forEach((gejalaCode) => {
       const relasiGejala = gejalaToPenyakitMap[gejalaCode] || [];
       if (relasiGejala.length === 0) return;
 
       const m_gejala: { [key: string]: number } = {};
+      // Total bobot dari semua relasi untuk gejala ini
       const totalBobot = round4(
         relasiGejala.reduce((sum, item) => sum + item.bobot, 0)
       );
-      // Confidence diambil sebagai nilai bobot maksimum dari relasi
+      // Confidence: ambil bobot tertinggi di antara relasi
       const confidence = Math.max(...relasiGejala.map((item) => item.bobot));
-      steps += `\nGejala ${gejalaCode} (${
+      steps += `Gejala ${gejalaCode} (${
         gejalaList.find((g) => g.kode === gejalaCode)?.nama || "Tidak diketahui"
       }):\n`;
       relasiGejala.forEach(({ penyakit, bobot }) => {
-        steps += `   Bobot untuk ${penyakit}: ${formatNumber(bobot)}\n`;
+        steps += `  Bobot untuk ${penyakit}: ${formatNumber(bobot)}\n`;
       });
-      steps += `   Confidence = ${formatNumber(confidence)}\n`;
-      steps += `   Total bobot = ${formatNumber(totalBobot)}\n`;
+      steps += `  Confidence = ${formatNumber(confidence)}\n`;
+      steps += `  Total bobot = ${formatNumber(totalBobot)}\n`;
+      // Bagi bobot tiap penyakit secara proporsional dan kalikan dengan confidence
       relasiGejala.forEach(({ penyakit, bobot }) => {
         const frac = round4(bobot / totalBobot);
         const m_val = round4(confidence * frac);
-        steps += `      m(${gejalaCode}){${penyakit}} = ${formatNumber(
+        steps += `    m(${gejalaCode}){${penyakit}} = ${formatNumber(
           confidence
         )} x (${formatNumber(bobot)}/${formatNumber(
           totalBobot
         )}) = ${formatNumber(m_val)}\n`;
         m_gejala[penyakit] = m_val;
       });
+      // Sisa keyakinan menjadi ketidakpastian (Θ)
       const mTheta = round4(1 - confidence);
       m_gejala[fullFrameKey] = mTheta;
-      steps += `      m(${gejalaCode})(Θ) = 1 - ${formatNumber(
+      steps += `    m(${gejalaCode})(Θ) = 1 - ${formatNumber(
         confidence
       )} = ${formatNumber(mTheta)}\n\n`;
-      steps += `   m(${gejalaCode}) = ${JSON.stringify(m_gejala)}\n\n`;
-      m_comb = combineMassFunctions(m_comb, m_gejala, frame);
-      steps += `   m_comb setelah kombinasi dengan ${gejalaCode}: ${JSON.stringify(
-        m_comb
-      )}\n\n`;
+      steps += `  m(${gejalaCode}) = ${JSON.stringify(m_gejala)}\n\n`;
+
+      // Gabungkan fungsi massa gejala ini dengan kombinasi sebelumnya
+      const stepsDetail: string[] = [];
+      m_comb = combineMassFunctions(m_comb, m_gejala, frame, stepsDetail);
+      steps += `Setelah kombinasi dengan ${gejalaCode}:\n`;
+      stepsDetail.forEach((line) => (steps += "  " + line + "\n"));
+      steps += "\n";
     });
 
     if (Object.keys(m_comb).length === 0) {
@@ -200,11 +244,12 @@ const SistemPakarPage: React.FC = () => {
       return;
     }
 
-    // Hasil akhir langsung diambil dari m_comb tanpa distribusi tambahan
+    // Buat hasil akhir (dalam persen) berdasarkan m_comb
     const results = Object.entries(m_comb)
       .map(([key, mass]) => {
         const belief = round4(mass * 100);
         const diseases = key.split(",");
+        // Ambil data penyakit berdasarkan entri pertama
         const penyakitObj = penyakitList.find(
           (p) => p.nama === diseases[0]
         ) || {
@@ -220,25 +265,22 @@ const SistemPakarPage: React.FC = () => {
         };
       })
       .sort((a, b) => b.belief - a.belief);
-    steps += `\nHasil diagnosa sementara: ${JSON.stringify(results)}\n\n`;
+    steps += `Hasil diagnosa sementara: ${JSON.stringify(results)}\n\n`;
 
     if (results.length === 0) {
       alert("Tidak ada penyakit yang cocok dengan gejala yang dipilih.");
       return;
     }
 
-    // Ambil penyakit dengan keyakinan tertinggi; jika ada tie, tampilkan semuanya
+    // Ambil hasil dengan keyakinan tertinggi (jika ada tie, tampilkan semua)
     const maxBeliefValue = results[0].belief;
     const ties = results.filter((item) => item.belief === maxBeliefValue);
     const finalResults = ties.length > 1 ? ties : [results[0]];
-    steps += `Final results (tanpa distribusi tambahan): ${JSON.stringify(
-      finalResults
-    )}\n`;
-
+    steps += `Final results: ${JSON.stringify(finalResults)}\n`;
     setHasilDiagnosa(finalResults);
     setCalcSteps(steps);
 
-    // Simpan diagnosis utama ke backend
+    // Simpan diagnosis ke backend
     const mainDiagnosis = finalResults[0];
     const diagnosisData = {
       id_pasien: localStorage.getItem("id_pasien"),
