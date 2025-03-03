@@ -25,23 +25,19 @@ const combineMassFunctions = (
   frame: string[],
   stepsDetail: string[]
 ): { [key: string]: number } => {
-  const fullFrameKey = frame.slice().sort().join(",");
+  const fullFrameKey = frame.slice().sort().join(","); // digunakan hanya untuk logging jika perlu
   let m_comb: { [key: string]: number } = {};
   let K = 0; // total konflik
 
   stepsDetail.push(`Mulai kombinasi massa:`);
   for (let key1 in m1) {
     for (let key2 in m2) {
-      // Jika key sama dengan fullFrameKey, artinya mewakili Θ
-      const set1 =
-        key1 === fullFrameKey ? new Set(frame) : new Set(key1.split(","));
-      const set2 =
-        key2 === fullFrameKey ? new Set(frame) : new Set(key2.split(","));
-      // Hitung irisan dari dua himpunan
+      // Jika key adalah "Θ", artinya ketidakpastian → gunakan seluruh frame
+      const set1 = key1 === "Θ" ? new Set(frame) : new Set(key1.split(","));
+      const set2 = key2 === "Θ" ? new Set(frame) : new Set(key2.split(","));
+      // Hitung irisan dari kedua set
       const intersection = new Set([...set1].filter((x) => set2.has(x)));
-      // Hitung hasil perkalian dan bulatkan
       const product = round4(m1[key1] * m2[key2]);
-      // Catat langkah perhitungan
       stepsDetail.push(
         `  ${key1} (${formatNumber(m1[key1])}) x ${key2} (${formatNumber(
           m2[key2]
@@ -50,7 +46,6 @@ const combineMassFunctions = (
             ? "konflik"
             : `hasil ${[...intersection].sort().join(",")}`)
       );
-      // Jika tidak ada irisan, tambahkan ke konflik (K)
       if (intersection.size === 0) {
         K = round4(K + product);
       } else {
@@ -62,7 +57,7 @@ const combineMassFunctions = (
     }
   }
   stepsDetail.push(`Total konflik (K): ${formatNumber(K)}`);
-  // Normalisasi: nilai setiap massa dibagi dengan (1 - K)
+  // Normalisasi: bagi setiap massa dengan (1 - K)
   const normalization = round4(1 - K);
   stepsDetail.push(`Normalisasi = 1 - K = ${formatNumber(normalization)}`);
   if (normalization === 0) return {};
@@ -188,7 +183,7 @@ const SistemPakarPage: React.FC = () => {
     const frame = Array.from(relevantDiseases).sort();
     const fullFrameKey = frame.join(",");
     steps += `Frame (Θ): [${frame.join(", ")}]\n\n`;
-    // Inisialisasi massa awal: m(Θ)=1
+    // Inisialisasi massa awal: m(Θ)=1. Perhatikan: kita simpan uncertainty menggunakan key "Θ".
     let m_comb: { [key: string]: number } = { [fullFrameKey]: 1 };
     steps += `Inisialisasi: m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
 
@@ -223,9 +218,9 @@ const SistemPakarPage: React.FC = () => {
         )}) = ${formatNumber(m_val)}\n`;
         m_gejala[penyakit] = m_val;
       });
-      // Sisa keyakinan menjadi ketidakpastian (Θ)
+      // Sisa keyakinan menjadi ketidakpastian, simpan dengan key "Θ"
       const mTheta = round4(1 - confidence);
-      m_gejala[fullFrameKey] = mTheta;
+      m_gejala["Θ"] = mTheta;
       steps += `    m(${gejalaCode})(Θ) = 1 - ${formatNumber(
         confidence
       )} = ${formatNumber(mTheta)}\n\n`;
@@ -248,8 +243,8 @@ const SistemPakarPage: React.FC = () => {
     const results = Object.entries(m_comb)
       .map(([key, mass]) => {
         const belief = round4(mass * 100);
+        // Ambil data penyakit berdasarkan entri pertama (jika key merupakan hipotesis gabungan)
         const diseases = key.split(",");
-        // Ambil data penyakit berdasarkan entri pertama
         const penyakitObj = penyakitList.find(
           (p) => p.nama === diseases[0]
         ) || {
