@@ -4,16 +4,16 @@ import axiosInstance from "../../api/axiosInstance";
 import { XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer, } from "recharts";
 import { FaVirus, FaHeartbeat, FaUser, FaStethoscope } from "react-icons/fa";
 const COLORS = [
-    "#1f77b4", // Biru
-    "#ff7f0e", // Oranye
-    "#2ca02c", // Hijau
-    "#d62728", // Merah
-    "#9467bd", // Ungu
-    "#8c564b", // Coklat
-    "#e377c2", // Pink
-    "#7f7f7f", // Abu-abu
-    "#bcbd22", // Zaitun
-    "#17becf", // Cyan
+    "#2C5DA0", // Biru Gelap
+    "#4A8EDB", // Biru Muda
+    "#F28C38", // Oranye Profesional
+    "#3A945D", // Hijau Elegan
+    "#D9534F", // Merah Lembut
+    "#6C757D", // Abu-abu Netral
+    "#9467bd", // Ungu (opsional)
+    "#8c564b", // Coklat (opsional)
+    "#bcbd22", // Zaitun (opsional)
+    "#17becf", // Cyan (opsional)
 ];
 const Dashboard = () => {
     const [penyakitCount, setPenyakitCount] = useState(0);
