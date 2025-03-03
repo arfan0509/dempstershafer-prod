@@ -21,6 +21,7 @@ import { AuthProvider, AuthContext } from "./context/AuthContext";
 import ProfilePage from "./pages/user/ProfilePage";
 import RiwayatDiagnosisPage from "./pages/user/RiwayatDiagnosisPage";
 import RiwayatDiagnosisAdminPage from "./pages/admin/RiwayatDiagnosisAdmin";
+import Footer from "./components/Footer"; // Import Footer
 
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -57,96 +58,103 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          {/* ✅ Halaman Umum */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin-login" element={<LoginAdminPage />} />
-          <Route path="/pasien-login" element={<LoginPasienPage />} />
-          <Route path="/pasien-register" element={<RegisterPasienPage />} />
+        <div className="flex flex-col min-h-screen">
+          {/* Bagian Utama */}
+          <div className="flex-grow">
+            <Routes>
+              {/* ✅ Halaman Umum */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin-login" element={<LoginAdminPage />} />
+              <Route path="/pasien-login" element={<LoginPasienPage />} />
+              <Route path="/pasien-register" element={<RegisterPasienPage />} />
 
-          {/* ✅ Halaman Pasien */}
-          <Route
-            path="/sistem-pakar"
-            element={
-              <PrivateRoutePasien>
-                <SistemPakarPage />
-              </PrivateRoutePasien>
-            }
-          />
-          <Route
-            path="/akun-saya"
-            element={
-              <PrivateRoutePasien>
-                <ProfilePage />
-              </PrivateRoutePasien>
-            }
-          />
-          <Route
-            path="/riwayat-diagnosis"
-            element={
-              <PrivateRoutePasien>
-                <RiwayatDiagnosisPage />
-              </PrivateRoutePasien>
-            }
-          />
-         
+              {/* ✅ Halaman Pasien */}
+              <Route
+                path="/sistem-pakar"
+                element={
+                  <PrivateRoutePasien>
+                    <SistemPakarPage />
+                  </PrivateRoutePasien>
+                }
+              />
+              <Route
+                path="/akun-saya"
+                element={
+                  <PrivateRoutePasien>
+                    <ProfilePage />
+                  </PrivateRoutePasien>
+                }
+              />
+              <Route
+                path="/riwayat-diagnosis"
+                element={
+                  <PrivateRoutePasien>
+                    <RiwayatDiagnosisPage />
+                  </PrivateRoutePasien>
+                }
+              />
 
-          {/* ✅ Halaman Admin */}
-          <Route
-            path="/admin-dashboard"
-            element={
-              <PrivateRouteAdmin>
-                <AdminSidebar>
-                  <Dashboard />
-                </AdminSidebar>
-              </PrivateRouteAdmin>
-            }
-          />
-          <Route
-            path="/data-penyakit-dan-solusi"
-            element={
-              <PrivateRouteAdmin>
-                <AdminSidebar>
-                  <DataPenyakitDanSolusi />
-                </AdminSidebar>
-              </PrivateRouteAdmin>
-            }
-          />
-          <Route
-            path="/data-gejala"
-            element={
-              <PrivateRouteAdmin>
-                <AdminSidebar>
-                  <DataGejala />
-                </AdminSidebar>
-              </PrivateRouteAdmin>
-            }
-          />
-          <Route
-            path="/data-relasi-gejala"
-            element={
-              <PrivateRouteAdmin>
-                <AdminSidebar>
-                  <DataRelasiGejala />
-                </AdminSidebar>
-              </PrivateRouteAdmin>
-            }
-          />
-          <Route
-            path="/riwayatdiagnosis-admin"
-            element={
-              <PrivateRouteAdmin>
-                <AdminSidebar>
-                  <RiwayatDiagnosisAdminPage />
-                </AdminSidebar>
-              </PrivateRouteAdmin>
-            }
-          />
+              {/* ✅ Halaman Admin */}
+              <Route
+                path="/admin-dashboard"
+                element={
+                  <PrivateRouteAdmin>
+                    <AdminSidebar>
+                      <Dashboard />
+                    </AdminSidebar>
+                  </PrivateRouteAdmin>
+                }
+              />
+              <Route
+                path="/data-penyakit-dan-solusi"
+                element={
+                  <PrivateRouteAdmin>
+                    <AdminSidebar>
+                      <DataPenyakitDanSolusi />
+                    </AdminSidebar>
+                  </PrivateRouteAdmin>
+                }
+              />
+              <Route
+                path="/data-gejala"
+                element={
+                  <PrivateRouteAdmin>
+                    <AdminSidebar>
+                      <DataGejala />
+                    </AdminSidebar>
+                  </PrivateRouteAdmin>
+                }
+              />
+              <Route
+                path="/data-relasi-gejala"
+                element={
+                  <PrivateRouteAdmin>
+                    <AdminSidebar>
+                      <DataRelasiGejala />
+                    </AdminSidebar>
+                  </PrivateRouteAdmin>
+                }
+              />
+              <Route
+                path="/riwayatdiagnosis-admin"
+                element={
+                  <PrivateRouteAdmin>
+                    <AdminSidebar>
+                      <RiwayatDiagnosisAdminPage />
+                    </AdminSidebar>
+                  </PrivateRouteAdmin>
+                }
+              />
 
-          {/* ✅ Fallback jika route tidak ditemukan */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+              {/* ✅ Fallback jika route tidak ditemukan */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+
+          {/* Footer Global */}
+          <Footer />
+        </div>
       </AuthProvider>
     </Router>
   );

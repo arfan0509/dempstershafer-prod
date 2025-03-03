@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }) => {
             setIsPasien(decoded.role === "pasien");
         }
         catch (error) {
-            console.error("❌ Gagal refresh token:", error);
             logout();
         }
     };

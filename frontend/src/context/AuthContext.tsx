@@ -46,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAdmin(decoded.role === "admin");
       setIsPasien(decoded.role === "pasien");
     } catch (error) {
-      console.error("❌ Gagal refresh token:", error);
       logout();
     }
   };
