@@ -1,16 +1,26 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
-import { LineChart, Line, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend, ResponsiveContainer, } from "recharts";
+import { XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer, } from "recharts";
 import { FaVirus, FaHeartbeat, FaUser, FaStethoscope } from "react-icons/fa";
-const COLORS = ["#4F81C7", "#FFBB28", "#FF8042", "#00C49F", "#FF6384"];
+const COLORS = [
+    "#2C5DA0", // Biru Gelap
+    "#4A8EDB", // Biru Muda
+    "#F28C38", // Oranye Profesional
+    "#3A945D", // Hijau Elegan
+    "#D9534F", // Merah Lembut
+    "#6C757D", // Abu-abu Netral
+    "#9467bd", // Ungu (opsional)
+    "#8c564b", // Coklat (opsional)
+    "#bcbd22", // Zaitun (opsional)
+    "#17becf", // Cyan (opsional)
+];
 const Dashboard = () => {
     const [penyakitCount, setPenyakitCount] = useState(0);
     const [gejalaCount, setGejalaCount] = useState(0);
     const [pasienCount, setPasienCount] = useState(0);
     const [diagnosisCount, setDiagnosisCount] = useState(0);
     const [latestDiagnoses, setLatestDiagnoses] = useState([]);
-    const [diagnosisTrends, setDiagnosisTrends] = useState([]);
     const [topPenyakit, setTopPenyakit] = useState([]);
     const [topGejala, setTopGejala] = useState([]);
     const getAuthHeaders = () => {
@@ -42,48 +52,22 @@ const Dashboard = () => {
                 .slice(0, 5));
             const penyakitFrequency = {};
             const gejalaFrequency = {};
-            const trendsMap = {};
             diagnosisRes.data.forEach((d) => {
-                const dateKey = new Date(d.tanggal_diagnosis).toLocaleDateString("id-ID");
-                trendsMap[dateKey] = (trendsMap[dateKey] || 0) + 1;
+                // Hitung frekuensi penyakit
                 penyakitFrequency[d.hasil_diagnosis.penyakit] =
                     (penyakitFrequency[d.hasil_diagnosis.penyakit] || 0) + 1;
+                // Hitung frekuensi gejala
                 d.hasil_diagnosis.gejala_terdeteksi.forEach((g) => {
                     gejalaFrequency[g] = (gejalaFrequency[g] || 0) + 1;
                 });
             });
-            const sortedTrends = Object.entries(trendsMap)
-                .map(([date, count]) => {
-                // 🔹 Konversi "27/2/2025" → "2025-02-27" (untuk sorting)
-                const parts = date.split("/"); // Pisahkan dengan "/"
-                if (parts.length !== 3) {
-                    console.error("Format tanggal tidak valid:", date);
-                    return null;
-                }
-                // 🔹 Simpan dalam format yang ingin ditampilkan
-                const formattedDate = `${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}-${parts[2]}`;
-                // 🔹 Konversi ke format YYYY-MM-DD agar bisa diurutkan dengan `new Date()`
-                const isoDate = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                const parsedDate = new Date(isoDate);
-                if (isNaN(parsedDate.getTime())) {
-                    console.error("Invalid date after conversion:", isoDate);
-                    return null; // Abaikan jika tetap tidak valid
-                }
-                return {
-                    date: formattedDate, // ⬅️ Tetap gunakan DD-MM-YYYY untuk ditampilkan
-                    isoDate, // ⬅️ Gunakan ini untuk sorting
-                    count,
-                };
-            })
-                .filter(Boolean) // Hapus data yang null
-                .sort((a, b) => new Date(a.isoDate).getTime() - new Date(b.isoDate).getTime()); // 🔥 Urutkan dari lama ke baru
-            setDiagnosisTrends(sortedTrends);
+            // Tampilkan SEMUA penyakit (tanpa .slice(0,5))
             setTopPenyakit(Object.entries(penyakitFrequency)
                 .map(([name, value]) => ({ name, value }))
-                .sort((a, b) => b.value - a.value)
-                .slice(0, 5));
+                .sort((a, b) => b.value - a.value));
+            // Untuk gejala, tetap ambil 5 terbanyak (sesuai kebutuhan)
             setTopGejala(Object.entries(gejalaFrequency)
-                .map(([name, value]) => ({ name, value }))
+                .map(([name, value]) => ({ name, value: value }))
                 .sort((a, b) => b.value - a.value)
                 .slice(0, 5));
         }
@@ -111,6 +95,6 @@ const Dashboard = () => {
                         count: diagnosisCount,
                         icon: _jsx(FaStethoscope, { size: 30 }),
                     },
-                ].map(({ label, count, icon }) => (_jsxs("div", { className: "p-6 bg-[#4F81C7] text-white rounded-xl shadow-lg flex items-center justify-between", children: [_jsxs("div", { children: [_jsxs("h3", { className: "text-lg font-semibold", children: ["Jumlah ", label] }), _jsx("p", { className: "text-3xl font-bold", children: count })] }), _jsx("div", { children: icon })] }, label))) }), _jsxs("div", { className: "bg-white rounded-md shadow-lg p-6 mt-10 overflow-x-auto", children: [_jsx("h3", { className: "text-2xl font-semibold text-[#4F81C7] mb-4", children: "Diagnosis Terbaru" }), _jsx("div", { className: "w-full", children: _jsxs("table", { className: "w-full min-w-[600px] text-left border-collapse", children: [_jsx("thead", { children: _jsxs("tr", { className: "bg-[#4F81C7] text-white", children: [_jsx("th", { className: "p-3", children: "Nama Pemilik" }), _jsx("th", { className: "p-3", children: "Nama Kucing" }), _jsx("th", { className: "p-3", children: "Tanggal" }), _jsx("th", { className: "p-3", children: "Penyakit" })] }) }), _jsx("tbody", { children: latestDiagnoses.map((d, idx) => (_jsxs("tr", { className: "border-b hover:bg-gray-100", children: [_jsx("td", { className: "p-3", children: d.pasien?.nama || "-" }), _jsx("td", { className: "p-3", children: d.nama_kucing || "-" }), _jsx("td", { className: "p-3", children: new Date(d.tanggal_diagnosis).toLocaleDateString("id-ID") }), _jsx("td", { className: "p-3", children: d.hasil_diagnosis.penyakit })] }, idx))) })] }) })] }), _jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10", children: [_jsxs("div", { className: "bg-white rounded-lg shadow-lg p-4", children: [_jsx("h3", { className: "text-xl font-semibold text-[#4F81C7] mb-4", children: "Penyakit Paling Umum" }), _jsx(ResponsiveContainer, { width: "100%", height: 250, children: _jsxs(PieChart, { children: [_jsx(Pie, { data: topPenyakit, dataKey: "value", nameKey: "name", cx: "50%", cy: "50%", outerRadius: 80, fill: "#4F81C7", label: true, children: topPenyakit.map((_, index) => (_jsx(Cell, { fill: COLORS[index % COLORS.length] }, `cell-${index}`))) }), _jsx(Tooltip, {})] }) })] }), _jsxs("div", { className: "bg-white rounded-lg shadow-lg p-4", children: [_jsx("h3", { className: "text-xl font-semibold text-[#4F81C7] mb-4", children: "Gejala Paling Sering Muncul" }), _jsx(ResponsiveContainer, { width: "100%", height: 250, children: _jsxs(BarChart, { data: topGejala, children: [_jsx(XAxis, { dataKey: "name", hide: true }), " ", _jsx(YAxis, { allowDecimals: false }), _jsx(Tooltip, {}), _jsx(Legend, {}), _jsx(Bar, { dataKey: "value", fill: "#4F81C7" })] }) })] }), _jsxs("div", { className: "bg-white rounded-lg shadow-lg p-4 lg:col-span-2", children: [_jsx("h3", { className: "text-xl font-semibold text-[#4F81C7] mb-4", children: "Grafik Tren Diagnosis (7 Hari Terakhir)" }), _jsx(ResponsiveContainer, { width: "100%", height: 300, children: _jsxs(LineChart, { data: diagnosisTrends, children: [_jsx(XAxis, { dataKey: "date" }), _jsx(YAxis, { allowDecimals: false }), _jsx(Tooltip, {}), _jsx(Line, { type: "monotone", dataKey: "count", stroke: "#4F81C7" })] }) })] })] })] }));
+                ].map(({ label, count, icon }) => (_jsxs("div", { className: "p-6 bg-[#4F81C7] text-white rounded-xl shadow-lg flex items-center justify-between", children: [_jsxs("div", { children: [_jsxs("h3", { className: "text-lg font-semibold", children: ["Jumlah ", label] }), _jsx("p", { className: "text-3xl font-bold", children: count })] }), _jsx("div", { children: icon })] }, label))) }), _jsxs("div", { className: "bg-white rounded-md shadow-lg p-6 mt-10 overflow-x-auto", children: [_jsx("h3", { className: "text-2xl font-semibold text-[#4F81C7] mb-4", children: "Diagnosis Terbaru" }), _jsx("div", { className: "w-full", children: _jsxs("table", { className: "w-full min-w-[600px] text-left border-collapse", children: [_jsx("thead", { children: _jsxs("tr", { className: "bg-[#4F81C7] text-white", children: [_jsx("th", { className: "p-3", children: "Nama Pemilik" }), _jsx("th", { className: "p-3", children: "Nama Kucing" }), _jsx("th", { className: "p-3", children: "Tanggal" }), _jsx("th", { className: "p-3", children: "Penyakit" })] }) }), _jsx("tbody", { children: latestDiagnoses.map((d, idx) => (_jsxs("tr", { className: "border-b hover:bg-gray-100", children: [_jsx("td", { className: "p-3", children: d.pasien?.nama || "-" }), _jsx("td", { className: "p-3", children: d.nama_kucing || "-" }), _jsx("td", { className: "p-3", children: new Date(d.tanggal_diagnosis).toLocaleDateString("id-ID") }), _jsx("td", { className: "p-3", children: d.hasil_diagnosis.penyakit })] }, idx))) })] }) })] }), _jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10", children: [_jsxs("div", { className: "bg-white rounded-lg shadow-lg p-4", children: [_jsx("h3", { className: "text-xl font-semibold text-[#4F81C7] mb-4", children: "Penyakit Paling Umum" }), _jsx(ResponsiveContainer, { width: "100%", height: 250, children: _jsxs(PieChart, { children: [_jsx(Pie, { data: topPenyakit, dataKey: "value", nameKey: "name", cx: "50%", cy: "50%", outerRadius: 80, fill: "#4F81C7", label: true, children: topPenyakit.map((_, index) => (_jsx(Cell, { fill: COLORS[index % COLORS.length] }, `cell-${index}`))) }), _jsx(Tooltip, {})] }) }), _jsx("div", { className: "mt-4 flex flex-wrap", children: topPenyakit.map((entry, index) => (_jsxs("div", { className: "flex items-center mr-4", children: [_jsx("div", { className: "w-4 h-4 mr-1", style: { backgroundColor: COLORS[index % COLORS.length] } }), _jsx("span", { children: entry.name })] }, index))) })] }), _jsxs("div", { className: "bg-white rounded-lg shadow-lg p-4", children: [_jsx("h3", { className: "text-xl font-semibold text-[#4F81C7] mb-4", children: "Gejala Paling Sering Muncul" }), _jsx(ResponsiveContainer, { width: "100%", height: 250, children: _jsxs(BarChart, { data: topGejala, children: [_jsx(XAxis, { dataKey: "name", hide: true }), _jsx(YAxis, { allowDecimals: false }), _jsx(Tooltip, {}), _jsx(Bar, { dataKey: "value", children: topGejala.map((entry, index) => (_jsx(Cell, { fill: COLORS[index % COLORS.length] }, `cell-${index}`))) })] }) }), _jsx("div", { className: "mt-4 flex flex-wrap", children: topGejala.map((entry, index) => (_jsxs("div", { className: "flex items-center mr-4", children: [_jsx("div", { className: "w-4 h-4 mr-1", style: { backgroundColor: COLORS[index % COLORS.length] } }), _jsx("span", { children: entry.name })] }, index))) })] })] })] }));
 };
 export default Dashboard;

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../api/axiosInstance";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -11,12 +9,22 @@ import {
   Cell,
   BarChart,
   Bar,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import { FaVirus, FaHeartbeat, FaUser, FaStethoscope } from "react-icons/fa";
 
-const COLORS = ["#4F81C7", "#FFBB28", "#FF8042", "#00C49F", "#FF6384"];
+const COLORS = [
+  "#2C5DA0", // Biru Gelap
+  "#4A8EDB", // Biru Muda
+  "#F28C38", // Oranye Profesional
+  "#3A945D", // Hijau Elegan
+  "#D9534F", // Merah Lembut
+  "#6C757D", // Abu-abu Netral
+  "#9467bd", // Ungu (opsional)
+  "#8c564b", // Coklat (opsional)
+  "#bcbd22", // Zaitun (opsional)
+  "#17becf", // Cyan (opsional)
+];
 
 const Dashboard: React.FC = () => {
   const [penyakitCount, setPenyakitCount] = useState(0);
@@ -24,7 +32,6 @@ const Dashboard: React.FC = () => {
   const [pasienCount, setPasienCount] = useState(0);
   const [diagnosisCount, setDiagnosisCount] = useState(0);
   const [latestDiagnoses, setLatestDiagnoses] = useState<any[]>([]);
-  const [diagnosisTrends, setDiagnosisTrends] = useState<any[]>([]);
   const [topPenyakit, setTopPenyakit] = useState<any[]>([]);
   const [topGejala, setTopGejala] = useState<any[]>([]);
 
@@ -66,80 +73,30 @@ const Dashboard: React.FC = () => {
 
       const penyakitFrequency: any = {};
       const gejalaFrequency: any = {};
-      const trendsMap: any = {};
 
       diagnosisRes.data.forEach((d: any) => {
-        const dateKey = new Date(d.tanggal_diagnosis).toLocaleDateString(
-          "id-ID"
-        );
-        trendsMap[dateKey] = (trendsMap[dateKey] || 0) + 1;
-
+        // Hitung frekuensi penyakit
         penyakitFrequency[d.hasil_diagnosis.penyakit] =
           (penyakitFrequency[d.hasil_diagnosis.penyakit] || 0) + 1;
 
+        // Hitung frekuensi gejala
         d.hasil_diagnosis.gejala_terdeteksi.forEach((g: string) => {
           gejalaFrequency[g] = (gejalaFrequency[g] || 0) + 1;
         });
       });
 
-      const sortedTrends = Object.entries(trendsMap)
-        .map(([date, count]) => {
-          // 🔹 Konversi "27/2/2025" → "2025-02-27" (untuk sorting)
-          const parts = date.split("/"); // Pisahkan dengan "/"
-          if (parts.length !== 3) {
-            console.error("Format tanggal tidak valid:", date);
-            return null;
-          }
-
-          // 🔹 Simpan dalam format yang ingin ditampilkan
-          const formattedDate = `${parts[0].padStart(
-            2,
-            "0"
-          )}-${parts[1].padStart(2, "0")}-${parts[2]}`;
-
-          // 🔹 Konversi ke format YYYY-MM-DD agar bisa diurutkan dengan `new Date()`
-          const isoDate = `${parts[2]}-${parts[1].padStart(
-            2,
-            "0"
-          )}-${parts[0].padStart(2, "0")}`;
-
-          const parsedDate = new Date(isoDate);
-
-          if (isNaN(parsedDate.getTime())) {
-            console.error("Invalid date after conversion:", isoDate);
-            return null; // Abaikan jika tetap tidak valid
-          }
-
-          return {
-            date: formattedDate, // ⬅️ Tetap gunakan DD-MM-YYYY untuk ditampilkan
-            isoDate, // ⬅️ Gunakan ini untuk sorting
-            count,
-          };
-        })
-        .filter(Boolean) // Hapus data yang null
-        .sort(
-          (a, b) =>
-            new Date(a.isoDate).getTime() - new Date(b.isoDate).getTime()
-        ); // 🔥 Urutkan dari lama ke baru
-
-      setDiagnosisTrends(sortedTrends);
-
+      // Tampilkan SEMUA penyakit (tanpa .slice(0,5))
       setTopPenyakit(
         Object.entries(penyakitFrequency)
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => (b.value as number) - (a.value as number))
-          .slice(0, 5)
       );
 
+      // Untuk gejala, tetap ambil 5 terbanyak (sesuai kebutuhan)
       setTopGejala(
         Object.entries(gejalaFrequency)
-          .map(([name, value]) => ({ name, value }))
-          .sort(
-            (
-              a: { name: string; value: number },
-              b: { name: string; value: number }
-            ) => b.value - a.value
-          )
+          .map(([name, value]) => ({ name, value: value as number }))
+          .sort((a, b) => (b.value as number) - (a.value as number))
           .slice(0, 5)
       );
     } catch (error) {
@@ -246,6 +203,18 @@ const Dashboard: React.FC = () => {
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
+          {/* Custom legend untuk penyakit */}
+          <div className="mt-4 flex flex-wrap">
+            {topPenyakit.map((entry, index) => (
+              <div key={index} className="flex items-center mr-4">
+                <div
+                  className="w-4 h-4 mr-1"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                ></div>
+                <span>{entry.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Gejala Paling Sering Muncul */}
@@ -255,29 +224,31 @@ const Dashboard: React.FC = () => {
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={topGejala}>
-              <XAxis dataKey="name" hide={true} />{" "}
-              {/* Hilangkan nama di bawah chart */}
+              <XAxis dataKey="name" hide={true} />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill="#4F81C7" />
+              <Bar dataKey="value">
+                {topGejala.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* 🔹 Grafik Tren Diagnosis 7 Hari Terakhir (Full Width) */}
-        <div className="bg-white rounded-lg shadow-lg p-4 lg:col-span-2">
-          <h3 className="text-xl font-semibold text-[#4F81C7] mb-4">
-            Grafik Tren Diagnosis (7 Hari Terakhir)
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={diagnosisTrends}>
-              <XAxis dataKey="date" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#4F81C7" />
-            </LineChart>
-          </ResponsiveContainer>
+          {/* Custom legend untuk gejala */}
+          <div className="mt-4 flex flex-wrap">
+            {topGejala.map((entry, index) => (
+              <div key={index} className="flex items-center mr-4">
+                <div
+                  className="w-4 h-4 mr-1"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                ></div>
+                <span>{entry.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

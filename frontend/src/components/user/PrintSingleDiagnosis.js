@@ -60,7 +60,7 @@ const PrintSingleDiagnosis = (diagnosisData) => {
                 .map((penyakit) => `
                             <div style="margin-bottom: 15px;">
                               <p><strong>Penyakit:</strong> ${penyakit.penyakit}</p>
-                              <p><strong>Gejala:</strong> ${penyakit.gejala_terdeteksi.join(", ")}</p>
+                              <p><strong>Gejala:</strong> ${penyakit.gejalaCocok.join(", ")}</p>
                               <p><strong>Solusi:</strong> ${penyakit.solusi}</p>
                             </div>
                           `)

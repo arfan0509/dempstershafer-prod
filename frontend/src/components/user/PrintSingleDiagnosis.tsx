@@ -75,7 +75,7 @@ const PrintSingleDiagnosis = (diagnosisData: any) => {
                               <p><strong>Penyakit:</strong> ${
                                 penyakit.penyakit
                               }</p>
-                              <p><strong>Gejala:</strong> ${penyakit.gejala_terdeteksi.join(
+                              <p><strong>Gejala:</strong> ${penyakit.gejalaCocok.join(
                                 ", "
                               )}</p>
                               <p><strong>Solusi:</strong> ${penyakit.solusi}</p>
