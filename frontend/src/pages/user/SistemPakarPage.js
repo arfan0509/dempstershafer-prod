@@ -15,11 +15,12 @@ const formatNumber = (num) => parseFloat(num.toFixed(4)).toString();
  * menggunakan aturan kombinasi Dempster-Shafer.
  * - m1: Fungsi massa sebelumnya.
  * - m2: Fungsi massa gejala saat ini.
- * - frame: Daftar penyakit (himpunan Θ) yang relevan.
+ * - frame: Daftar penyakit (himpunan Θ) yang relevan (dalam hal ini semua penyakit).
  * - stepsDetail: Array string untuk mencatat tiap langkah perhitungan.
  */
 const combineMassFunctions = (m1, m2, frame, stepsDetail) => {
-    const fullFrameKey = frame.slice().sort().join(","); // digunakan hanya untuk logging jika perlu
+    // Frame penuh hanya untuk logging
+    const fullFrameKey = frame.slice().sort().join(",");
     let m_comb = {};
     let K = 0; // total konflik
     stepsDetail.push(`Mulai kombinasi massa:`);
@@ -31,10 +32,9 @@ const combineMassFunctions = (m1, m2, frame, stepsDetail) => {
             // Hitung irisan dari kedua set
             const intersection = new Set([...set1].filter((x) => set2.has(x)));
             const product = round4(m1[key1] * m2[key2]);
-            stepsDetail.push(`  ${key1} (${formatNumber(m1[key1])}) x ${key2} (${formatNumber(m2[key2])}) = ${formatNumber(product)} → ` +
-                (intersection.size === 0
-                    ? "konflik"
-                    : `hasil ${[...intersection].sort().join(",")}`));
+            stepsDetail.push(`  ${key1} (${formatNumber(m1[key1])}) x ${key2} (${formatNumber(m2[key2])}) = ${formatNumber(product)} → ${intersection.size === 0
+                ? "konflik"
+                : `hasil ${[...intersection].sort().join(",")}`}`);
             if (intersection.size === 0) {
                 K = round4(K + product);
             }
@@ -135,7 +135,19 @@ const SistemPakarPage = () => {
         // Urutkan gejala yang dipilih agar konsisten (misalnya: G2, G3, G4)
         const sortedSelectedGejala = [...selectedGejala].sort();
         steps += `Gejala yang dipilih (urut): ${sortedSelectedGejala.join(", ")}\n\n`;
-        // Buat mapping: tiap gejala → daftar relasi (penyakit dan bobotnya)
+        // Buat array semua penyakit (bukan hanya relevan)
+        const allDiseases = penyakitList.map((p) => p.nama);
+        // Buat frame yang mencakup semua penyakit
+        const frame = Array.from(new Set(allDiseases)).sort();
+        // Tampilkan frame berisi seluruh penyakit
+        steps += `Frame (Θ) (All Diseases): [${frame.join(", ")}]\n\n`;
+        // Inisialisasi massa awal: m(Θ)=1.
+        // Untuk representasi di object, kita pakai key gabungan (fullFrameKey) = "P1,P2,..."
+        // agar sesuai dengan combineMassFunctions
+        const fullFrameKey = frame.join(",");
+        let m_comb = { [fullFrameKey]: 1 };
+        steps += `Inisialisasi: m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
+        // Buat mapping gejala → daftar (penyakit, bobot)
         const gejalaToPenyakitMap = {};
         penyakitList.forEach((p) => {
             p.gejala.forEach((relasi) => {
@@ -146,18 +158,6 @@ const SistemPakarPage = () => {
                 gejalaToPenyakitMap[kode_gejala].push({ penyakit: p.nama, bobot });
             });
         });
-        // Tentukan frame (himpunan penyakit relevan)
-        const relevantDiseases = new Set();
-        sortedSelectedGejala.forEach((gejalaCode) => {
-            const rel = gejalaToPenyakitMap[gejalaCode] || [];
-            rel.forEach(({ penyakit }) => relevantDiseases.add(penyakit));
-        });
-        const frame = Array.from(relevantDiseases).sort();
-        const fullFrameKey = frame.join(",");
-        steps += `Frame (Θ): [${frame.join(", ")}]\n\n`;
-        // Inisialisasi massa awal: m(Θ)=1. Perhatikan: kita simpan uncertainty menggunakan key "Θ".
-        let m_comb = { [fullFrameKey]: 1 };
-        steps += `Inisialisasi: m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
         // Proses perhitungan untuk setiap gejala terpilih
         sortedSelectedGejala.forEach((gejalaCode) => {
             const relasiGejala = gejalaToPenyakitMap[gejalaCode] || [];
@@ -226,31 +226,35 @@ const SistemPakarPage = () => {
         const ties = results.filter((item) => item.belief === maxBeliefValue);
         const finalResults = ties.length > 1 ? ties : [results[0]];
         steps += `Final results: ${JSON.stringify(finalResults)}\n`;
-        setHasilDiagnosa(finalResults);
         setCalcSteps(steps);
-        // Simpan diagnosis ke backend
-        const mainDiagnosis = finalResults[0];
-        const diagnosisData = {
-            id_pasien: localStorage.getItem("id_pasien"),
-            nama_kucing: kucingData.nama,
-            jenis_kelamin: kucingData.jenisKelamin,
-            usia: kucingData.usia,
-            warna_bulu: kucingData.warnaBulu,
-            hasil_diagnosis: {
-                penyakit: mainDiagnosis.penyakit,
-                solusi: mainDiagnosis.solusi,
-                deskripsi: mainDiagnosis.deskripsi,
-                gejala_terdeteksi: mainDiagnosis.gejalaCocok,
-            },
-        };
+        // Tampilkan loading, lalu simpan diagnosis ke backend
         setLoading(true);
         setDone(false);
         try {
+            // Buat payload ke backend
+            const mainDiagnosis = finalResults[0];
+            const diagnosisData = {
+                id_pasien: localStorage.getItem("id_pasien"),
+                nama_kucing: kucingData.nama,
+                jenis_kelamin: kucingData.jenisKelamin,
+                usia: kucingData.usia,
+                warna_bulu: kucingData.warnaBulu,
+                hasil_diagnosis: {
+                    penyakit: mainDiagnosis.penyakit,
+                    solusi: mainDiagnosis.solusi,
+                    deskripsi: mainDiagnosis.deskripsi,
+                    gejala_terdeteksi: mainDiagnosis.gejalaCocok,
+                },
+            };
             await axiosInstance.post("/diagnosis/tambah", diagnosisData);
+            // Setelah post berhasil, setTimeout untuk mensimulasikan proses
             setTimeout(() => {
                 setDone(true);
                 setTimeout(() => setLoading(false), 2000);
             }, 3000);
+            // Baru kita set hasilDiagnosa (supaya tidak muncul sebelum loading selesai)
+            // Jika Anda ingin hasil langsung muncul tanpa menunggu loading, pindahkan setHasilDiagnosa(finalResults) sebelum setTimeout
+            setHasilDiagnosa(finalResults);
         }
         catch (error) {
             console.error("Error saving diagnosis:", error);
@@ -281,7 +285,7 @@ const SistemPakarPage = () => {
                                                 else {
                                                     setSelectedGejala((prev) => prev.filter((g) => g !== value));
                                                 }
-                                            }, className: "w-5 h-5 rounded-full text-[#4F81C7] focus:ring-[#4F81C7]" }), _jsxs("span", { className: "ml-3 text-gray-700 text-sm", children: [gejala.kode, " - ", gejala.nama] })] }, index))) }), _jsx("button", { onClick: handleDiagnosa, className: "w-full py-3 mt-6 text-white bg-[#4F81C7] rounded-lg hover:bg-[#3e6b99] transition duration-300", children: "Diagnosa" })] })), hasilDiagnosa.length > 0 && (_jsxs("div", { className: "hasil-diagnosa bg-white p-8 rounded-2xl shadow-2xl mb-10", children: [_jsxs("div", { className: "bg-gradient-to-r from-[#4F81C7] to-[#3e6b99] text-white p-6 rounded-lg shadow-md mb-6", children: [_jsxs("h2", { className: "text-3xl font-bold mb-2", children: ["Diagnosa Utama: ", hasilDiagnosa[0].penyakit] }), _jsx("div", { className: "w-full bg-gray-300 rounded-full h-4 mt-4", children: _jsx("div", { className: "bg-green-400 h-4 rounded-full transition-all duration-500", style: { width: `${formatNumber(hasilDiagnosa[0].belief)}%` } }) }), _jsxs("p", { className: "mt-2 text-sm", children: ["Keyakinan:", " ", _jsxs("strong", { children: [formatNumber(hasilDiagnosa[0].belief), "%"] })] })] }), _jsxs("div", { className: "space-y-6", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Deskripsi Penyakit" }), _jsx("p", { className: "text-gray-600 leading-relaxed", children: hasilDiagnosa[0].deskripsi })] }), _jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Solusi yang Disarankan" }), _jsx("p", { className: "text-gray-600 leading-relaxed", children: hasilDiagnosa[0].solusi })] }), _jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Gejala Terdeteksi" }), _jsx("div", { className: "flex flex-wrap gap-2", children: hasilDiagnosa[0].gejalaCocok.map((gejala, index) => (_jsx("span", { className: "bg-[#4F81C7] text-white px-3 py-1 rounded-full text-sm shadow-sm", children: gejala }, index))) })] })] }), hasilDiagnosa.length > 1 && (_jsxs("div", { className: "mt-10", children: [_jsx("button", { className: "w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-center font-semibold text-[#4F81C7] transition duration-300", onClick: () => setShowOtherPenyakit(!showOtherPenyakit), children: showOtherPenyakit
+                                            }, className: "w-5 h-5 rounded-full text-[#4F81C7] focus:ring-[#4F81C7]" }), _jsxs("span", { className: "ml-3 text-gray-700 text-sm", children: [gejala.kode, " - ", gejala.nama] })] }, index))) }), _jsx("button", { onClick: handleDiagnosa, className: "w-full py-3 mt-6 text-white bg-[#4F81C7] rounded-lg hover:bg-[#3e6b99] transition duration-300", children: "Diagnosa" })] })), done && hasilDiagnosa.length > 0 && (_jsxs("div", { className: "hasil-diagnosa bg-white p-8 rounded-2xl shadow-2xl mb-10", children: [_jsxs("div", { className: "bg-gradient-to-r from-[#4F81C7] to-[#3e6b99] text-white p-6 rounded-lg shadow-md mb-6", children: [_jsxs("h2", { className: "text-3xl font-bold mb-2", children: ["Diagnosa Utama: ", hasilDiagnosa[0].penyakit] }), _jsx("div", { className: "w-full bg-gray-300 rounded-full h-4 mt-4", children: _jsx("div", { className: "bg-green-400 h-4 rounded-full transition-all duration-500", style: { width: `${formatNumber(hasilDiagnosa[0].belief)}%` } }) }), _jsxs("p", { className: "mt-2 text-sm", children: ["Keyakinan:", " ", _jsxs("strong", { children: [formatNumber(hasilDiagnosa[0].belief), "%"] })] })] }), _jsxs("div", { className: "space-y-6", children: [_jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Deskripsi Penyakit" }), _jsx("p", { className: "text-gray-600 leading-relaxed", children: hasilDiagnosa[0].deskripsi })] }), _jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Solusi yang Disarankan" }), _jsx("p", { className: "text-gray-600 leading-relaxed", children: hasilDiagnosa[0].solusi })] }), _jsxs("div", { children: [_jsx("h4", { className: "text-xl font-semibold text-gray-800 mb-2", children: "Gejala Terdeteksi" }), _jsx("div", { className: "flex flex-wrap gap-2", children: hasilDiagnosa[0].gejalaCocok.map((gejala, index) => (_jsx("span", { className: "bg-[#4F81C7] text-white px-3 py-1 rounded-full text-sm shadow-sm", children: gejala }, index))) })] })] }), hasilDiagnosa.length > 1 && (_jsxs("div", { className: "mt-10", children: [_jsx("button", { className: "w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-center font-semibold text-[#4F81C7] transition duration-300", onClick: () => setShowOtherPenyakit(!showOtherPenyakit), children: showOtherPenyakit
                                             ? "🔼 Sembunyikan Penyakit Lainnya"
                                             : "🔽 Tampilkan Penyakit Lainnya" }), showOtherPenyakit && (_jsx("div", { className: "grid gap-6 mt-6", children: hasilDiagnosa
                                             .slice(1)
