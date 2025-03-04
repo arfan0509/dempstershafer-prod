@@ -25,7 +25,7 @@ const combineMassFunctions = (
   frame: string[],
   stepsDetail: string[]
 ): { [key: string]: number } => {
-  // Frame penuh hanya untuk logging
+  // fullFrameKey hanya untuk logging; uncertainty disimpan dengan key "Θ"
   const fullFrameKey = frame.slice().sort().join(",");
   let m_comb: { [key: string]: number } = {};
   let K = 0; // total konflik
@@ -36,21 +36,17 @@ const combineMassFunctions = (
       // Jika key adalah "Θ", artinya ketidakpastian → gunakan seluruh frame
       const set1 = key1 === "Θ" ? new Set(frame) : new Set(key1.split(","));
       const set2 = key2 === "Θ" ? new Set(frame) : new Set(key2.split(","));
-
       // Hitung irisan dari kedua set
       const intersection = new Set([...set1].filter((x) => set2.has(x)));
       const product = round4(m1[key1] * m2[key2]);
-
       stepsDetail.push(
         `  ${key1} (${formatNumber(m1[key1])}) x ${key2} (${formatNumber(
           m2[key2]
-        )}) = ${formatNumber(product)} → ${
-          intersection.size === 0
+        )}) = ${formatNumber(product)} → ` +
+          (intersection.size === 0
             ? "konflik"
-            : `hasil ${[...intersection].sort().join(",")}`
-        }`
+            : `hasil ${[...intersection].sort().join(",")}`)
       );
-
       if (intersection.size === 0) {
         K = round4(K + product);
       } else {
@@ -61,14 +57,11 @@ const combineMassFunctions = (
       }
     }
   }
-
   stepsDetail.push(`Total konflik (K): ${formatNumber(K)}`);
   // Normalisasi: bagi setiap massa dengan (1 - K)
   const normalization = round4(1 - K);
   stepsDetail.push(`Normalisasi = 1 - K = ${formatNumber(normalization)}`);
-
   if (normalization === 0) return {};
-
   for (let key in m_comb) {
     const before = m_comb[key];
     m_comb[key] = round4(m_comb[key] / normalization);
@@ -78,7 +71,6 @@ const combineMassFunctions = (
       )} = ${formatNumber(m_comb[key])}`
     );
   }
-
   stepsDetail.push(`Hasil kombinasi: ${JSON.stringify(m_comb)}`);
   return m_comb;
 };
@@ -89,14 +81,12 @@ const SistemPakarPage: React.FC = () => {
   const [selectedGejala, setSelectedGejala] = useState<string[]>([]);
   const [hasilDiagnosa, setHasilDiagnosa] = useState<any[]>([]);
   const [showOtherPenyakit, setShowOtherPenyakit] = useState<boolean>(false);
-
   const [kucingData, setKucingData] = useState({
     nama: "",
     jenisKelamin: "",
     usia: "",
     warnaBulu: "",
   });
-
   const [isGejalaVisible, setIsGejalaVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [done, setDone] = useState<boolean>(false);
@@ -158,7 +148,7 @@ const SistemPakarPage: React.FC = () => {
       .filter((item) => item !== null) as string[];
   };
 
-  // Fungsi utama perhitungan Dempster-Shafer (DS) dengan pendekatan "ambil bobot tertinggi"
+  // Fungsi utama perhitungan Dempster-Shafer (DS) dengan pendekatan "ambil rata-rata bobot"
   const handleDiagnosa = async () => {
     if (selectedGejala.length === 0) {
       alert("Silakan pilih setidaknya satu gejala!");
@@ -173,27 +163,20 @@ const SistemPakarPage: React.FC = () => {
       ", "
     )}\n\n`;
 
-    // Buat array semua penyakit (bukan hanya relevan)
+    // Tampilkan seluruh penyakit yang ada (bukan hanya yang relevan) di frame
     const allDiseases = penyakitList.map((p) => p.nama);
-    // Buat frame yang mencakup semua penyakit
     const frame = Array.from(new Set(allDiseases)).sort();
-
-    // Tampilkan frame berisi seluruh penyakit
     steps += `Frame (Θ) (All Diseases): [${frame.join(", ")}]\n\n`;
 
-    // Inisialisasi massa awal: m(Θ)=1.
-    // Untuk representasi di object, kita pakai key gabungan (fullFrameKey) = "P1,P2,..."
-    // agar sesuai dengan combineMassFunctions
+    // Inisialisasi massa awal: m(Θ)=1. Gunakan key gabungan seluruh penyakit.
     const fullFrameKey = frame.join(",");
     let m_comb: { [key: string]: number } = { [fullFrameKey]: 1 };
-
     steps += `Inisialisasi: m(Θ) = { "${fullFrameKey}": 1 }\n\n`;
 
-    // Buat mapping gejala → daftar (penyakit, bobot)
+    // Buat mapping: tiap gejala → daftar (penyakit, bobot)
     const gejalaToPenyakitMap: {
       [key: string]: { penyakit: string; bobot: number }[];
     } = {};
-
     penyakitList.forEach((p) => {
       p.gejala.forEach((relasi: any) => {
         const { kode_gejala, bobot } = relasi;
@@ -215,19 +198,19 @@ const SistemPakarPage: React.FC = () => {
       const totalBobot = round4(
         relasiGejala.reduce((sum, item) => sum + item.bobot, 0)
       );
-      // Confidence: ambil bobot tertinggi di antara relasi
-      const confidence = Math.max(...relasiGejala.map((item) => item.bobot));
-
+      // Hitung rata-rata bobot sebagai estimasi confidence
+      const average = round4(totalBobot / relasiGejala.length);
+      const confidence = average; // gunakan rata-rata bobot sebagai confidence
       steps += `Gejala ${gejalaCode} (${
         gejalaList.find((g) => g.kode === gejalaCode)?.nama || "Tidak diketahui"
       }):\n`;
       relasiGejala.forEach(({ penyakit, bobot }) => {
         steps += `  Bobot untuk ${penyakit}: ${formatNumber(bobot)}\n`;
       });
-      steps += `  Confidence = ${formatNumber(confidence)}\n`;
       steps += `  Total bobot = ${formatNumber(totalBobot)}\n`;
+      steps += `  Confidence (rata-rata bobot) = ${formatNumber(confidence)}\n`;
 
-      // Bagi bobot tiap penyakit secara proporsional dan kalikan dengan confidence
+      // Distribusikan massa untuk setiap penyakit secara proporsional terhadap total bobot
       relasiGejala.forEach(({ penyakit, bobot }) => {
         const frac = round4(bobot / totalBobot);
         const m_val = round4(confidence * frac);
@@ -250,7 +233,6 @@ const SistemPakarPage: React.FC = () => {
       // Gabungkan fungsi massa gejala ini dengan kombinasi sebelumnya
       const stepsDetail: string[] = [];
       m_comb = combineMassFunctions(m_comb, m_gejala, frame, stepsDetail);
-
       steps += `Setelah kombinasi dengan ${gejalaCode}:\n`;
       stepsDetail.forEach((line) => (steps += "  " + line + "\n"));
       steps += "\n";
@@ -273,7 +255,6 @@ const SistemPakarPage: React.FC = () => {
           deskripsi: "Tidak tersedia",
           solusi: "Tidak tersedia",
         };
-
         return {
           penyakit: key,
           belief: belief,
@@ -295,16 +276,15 @@ const SistemPakarPage: React.FC = () => {
     const maxBeliefValue = results[0].belief;
     const ties = results.filter((item) => item.belief === maxBeliefValue);
     const finalResults = ties.length > 1 ? ties : [results[0]];
-
     steps += `Final results: ${JSON.stringify(finalResults)}\n`;
     setCalcSteps(steps);
 
-    // Tampilkan loading, lalu simpan diagnosis ke backend
+    // Tampilkan loading dan simulasikan proses, baru tampilkan hasil diagnosis
     setLoading(true);
     setDone(false);
 
     try {
-      // Buat payload ke backend
+      // Buat payload diagnosis ke backend
       const mainDiagnosis = finalResults[0];
       const diagnosisData = {
         id_pasien: localStorage.getItem("id_pasien"),
@@ -322,14 +302,13 @@ const SistemPakarPage: React.FC = () => {
 
       await axiosInstance.post("/diagnosis/tambah", diagnosisData);
 
-      // Setelah post berhasil, setTimeout untuk mensimulasikan proses
+      // Simulasikan proses selesai dengan timeout, baru hasil muncul
       setTimeout(() => {
         setDone(true);
         setTimeout(() => setLoading(false), 2000);
       }, 3000);
 
-      // Baru kita set hasilDiagnosa (supaya tidak muncul sebelum loading selesai)
-      // Jika Anda ingin hasil langsung muncul tanpa menunggu loading, pindahkan setHasilDiagnosa(finalResults) sebelum setTimeout
+      // Simpan hasil diagnosa agar muncul setelah proses selesai
       setHasilDiagnosa(finalResults);
     } catch (error) {
       console.error("Error saving diagnosis:", error);
@@ -463,7 +442,7 @@ const SistemPakarPage: React.FC = () => {
           </form>
         )}
 
-        {/* Tampilkan hasil diagnosis HANYA JIKA done === true */}
+        {/* Tampilkan hasil diagnosis hanya ketika done === true */}
         {done && hasilDiagnosa.length > 0 && (
           <div className="hasil-diagnosa bg-white p-8 rounded-2xl shadow-2xl mb-10">
             <div className="bg-gradient-to-r from-[#4F81C7] to-[#3e6b99] text-white p-6 rounded-lg shadow-md mb-6">
