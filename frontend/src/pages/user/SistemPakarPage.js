@@ -15,7 +15,7 @@ const formatNumber = (num) => parseFloat(num.toFixed(4)).toString();
  * menggunakan aturan kombinasi Dempster-Shafer.
  * - m1: Fungsi massa sebelumnya.
  * - m2: Fungsi massa gejala saat ini.
- * - frame: Daftar penyakit (himpunan Θ) yang relevan (dalam hal ini semua penyakit).
+ * - frame: Daftar penyakit (himpunan Θ) yang relevan (di sini semua penyakit).
  * - stepsDetail: Array string untuk mencatat tiap langkah perhitungan.
  */
 const combineMassFunctions = (m1, m2, frame, stepsDetail) => {
@@ -128,8 +128,9 @@ const SistemPakarPage = () => {
     };
     // Fungsi utama perhitungan Dempster-Shafer (DS) dengan pendekatan "ambil rata-rata bobot"
     const handleDiagnosa = async () => {
-        if (selectedGejala.length === 0) {
-            alert("Silakan pilih setidaknya satu gejala!");
+        // Validasi: minimal 2 gejala harus dipilih
+        if (selectedGejala.length < 2) {
+            alert("Silakan pilih minimal 2 gejala!");
             return;
         }
         let steps = "";
@@ -219,7 +220,7 @@ const SistemPakarPage = () => {
             alert("Tidak ada penyakit yang cocok dengan gejala yang dipilih.");
             return;
         }
-        // Ambil hasil dengan keyakinan tertinggi (jika ada tie, tampilkan semua)
+        // Ambil hasil dengan keyakinan tertinggi (jika ada tie, tampilkan semuanya)
         const maxBeliefValue = results[0].belief;
         const ties = results.filter((item) => item.belief === maxBeliefValue);
         const finalResults = ties.length > 1 ? ties : [results[0]];
